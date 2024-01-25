@@ -51,9 +51,6 @@ class VGG19(nn.Module):
         return nn.Sequential(*layers)
     
     def forward(self, x : torch.Tensor):
-        '''
-        前向传播,不考虑全连接层
-        '''
         x = self.conv(x)
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
@@ -95,36 +92,39 @@ def get_model(device, middle_layer):
     vgg = vgg.conv.to(device).eval()
     vgg = copy.deepcopy(vgg)
 
-    model = []
+    model = nn.Sequential()
     i = 0
-    tmp = nn.Sequential()
+    j = 1
+    # tmp = nn.Sequential()
     for layer in vgg.children():
         if isinstance(layer, nn.Conv2d):
             i += 1
-            name = f'conv_{i}'
+            name = f'conv{j}_{i}'
             layer.padding_mode = 'reflect'
         elif isinstance(layer, nn.ReLU):
-            name = f'relu_{i}'
+            name = f'relu{j}_{i}'
             layer = nn.ReLU(inplace=False)
 
-            tmp.add_module(name, layer)
-            model.append(tmp)
-            tmp  = nn.Sequential()
-            continue
+            # tmp.add_module(name, layer)
+            # model.append(tmp)
+            # tmp  = nn.Sequential()
+            # continue
         elif isinstance(layer, nn.MaxPool2d):
-            name = f'pool_{i}'
+            name = f'pool{j}'
             if middle_layer == 'M':
                 layer = nn.MaxPool2d(kernel_size=2, stride=2)
             elif middle_layer == 'A':
                 layer = nn.AvgPool2d(kernel_size=2, stride=2)
             else:
                 raise RuntimeError(f'Unrecognized middle layer')
+            j += 1
+            i = 0
         elif isinstance(layer, nn.BatchNorm2d):
             name = f'bn_{i}'
         else:
             raise RuntimeError(f'Unrecognized layer: {layer.__class__.__name__}')
-        tmp.add_module(name, layer)
-    return nn.Sequential(*model)
+        model.add_module(name, layer)
+    return model
 
 
 
@@ -178,10 +178,10 @@ if __name__ == '__main__':
 
     image = Image.open((Path(__file__) / '..' / '..' / 'Images' / 'pebbles.jpg').resolve())
 
-    # embed()
+    embed()
 
-    structure = torch.nn.Sequential(*list(model.children())[:])
-    print(structure)
+    # structure = torch.nn.Sequential(*list(model.children())[:])
+    # print(structure)
 
 
 

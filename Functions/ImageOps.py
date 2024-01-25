@@ -17,6 +17,10 @@ def show_image(img : torch.Tensor, show = True):
         image = img.detach().numpy()
     else:
         image = img.detach().cpu().numpy()
+    # 防止数据溢出
+    image = np.maximum(image, 0)
+    image = np.minimum(image, 1)
+
     image = (image * 255).astype(np.uint8).transpose((1, 2, 0))
     image = Image.fromarray(image)
     if (show) :
