@@ -133,7 +133,7 @@ class Modified_VGG19(nn.Module):
         super().__init__()
         self.model = get_model(device, middle_layer)[:-2]
 
-        self.feature_maps = [None for i in range(len(self.model))]
+        self.feature_maps = {}
 
 
     def forward(self, x):
@@ -151,22 +151,26 @@ class Modified_VGG19(nn.Module):
         # inp[0:1, :, ...] = (x[0:1, :, ...] - 0.485) / 0.229
         # inp[1:2, :, ...] = (x[1:2, :, ...] - 0.456) / 0.224
         # inp[2:3, :, ...] = (x[2:3, :, ...] - 0.406) / 0.225
-        res = []
+        self.feature_maps.clear()
+        name    = list(self.model._modules.keys())
 
         for idx in range(len(self.model)):
             inp = self.model[idx](inp)
-            res.append(inp)
-            self.feature_maps[idx] = inp.clone()
+            self.feature_maps[name[idx]] = inp
 
-        return res
+        return self.feature_maps
     
     def get_feature_maps(self):
-        return [ item.clone() for item in self.feature_maps ]
+        return self.feature_maps
     
     def get_gram_matrices(self):
         feature_maps_flattened = [ torch.flatten(feature, start_dim=1) for feature in self.feature_maps ] 
         Gram_Matrices = [ torch.matmul(item, torch.transpose(item, 0, 1)) for item in feature_maps_flattened ]
         return Gram_Matrices
+    
+    def get_model_layer_names(self) -> list[str] :
+        # 得到模型每一层的名字
+        return list(self.model._modules.keys())
 
 
 
